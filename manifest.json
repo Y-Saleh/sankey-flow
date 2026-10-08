@@ -1,0 +1,10 @@
+{
+  "id": "sankey-flow",
+  "name": "Sankey Flow",
+  "version": "1.0.0",
+  "minAppVersion": "1.7.2",
+  "description": "Create interactive Sankey diagrams whose nodes link to your existing notes. Import tables and CSV, embed anywhere, export to SVG and PNG.",
+  "author": "Sankey Flow contributors",
+  "isDesktopOnly": false,
+  "authorUrl": "https://github.com/Y-Saleh"
+}

@@ -1,0 +1,7 @@
+From;To;Amount
+Salary;Budget;3200,50
+Freelance;Budget;800
+Budget;Rent;1200
+Budget;Food;450
+Budget;Savings;oops
+Budget;Transport;"1.250,00"

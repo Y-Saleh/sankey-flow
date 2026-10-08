@@ -1,0 +1,1114 @@
+/*
+ * Sankey Flow
+ * Every selector is namespaced with .sankey-flow-* and every colour comes
+ * from Obsidian's theme variables, so the plugin follows light/dark mode and
+ * community themes without touching anything outside its own elements.
+ */
+
+/* ── Diagram ─────────────────────────────────────────────────────────── */
+
+.sankey-flow-diagram {
+	--sankey-flow-opacity: 0.32;
+	--sankey-flow-hover-opacity: 0.62;
+	position: relative;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	outline: none;
+	user-select: none;
+	-webkit-user-select: none;
+	touch-action: pan-y;
+	border-radius: var(--radius-m);
+}
+
+.sankey-flow-diagram.is-editable {
+	touch-action: none;
+}
+
+.sankey-flow-diagram:focus-visible {
+	box-shadow: inset 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+.sankey-flow-svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.theme-dark .sankey-flow-diagram {
+	--sankey-flow-boost: 1.3;
+}
+
+.sankey-flow-link {
+	--sankey-flow-current-opacity: calc(var(--sankey-flow-opacity) * var(--sankey-flow-boost, 1));
+	fill: var(--sankey-link-color);
+	fill-opacity: var(--sankey-flow-current-opacity);
+	stroke: none;
+	transition: fill-opacity 140ms ease, stroke-opacity 140ms ease;
+}
+
+/* Flows that close a cycle are drawn as stroked loops beneath the diagram. */
+.sankey-flow-link.is-circular {
+	fill: none;
+	stroke: var(--sankey-link-color);
+	stroke-opacity: var(--sankey-flow-current-opacity);
+}
+
+.sankey-flow-link.has-link {
+	cursor: pointer;
+}
+
+.sankey-flow-diagram.has-hover .sankey-flow-link {
+	--sankey-flow-current-opacity: calc(var(--sankey-flow-opacity) * var(--sankey-flow-boost, 1) * 0.35);
+}
+
+.sankey-flow-diagram.has-hover .sankey-flow-link.is-related,
+.sankey-flow-link.is-selected {
+	--sankey-flow-current-opacity: min(1, calc(var(--sankey-flow-hover-opacity) * var(--sankey-flow-boost, 1)));
+}
+
+.sankey-flow-link.is-selected:not(.is-circular) {
+	stroke: var(--text-normal);
+	stroke-width: 1px;
+	stroke-opacity: 0.55;
+}
+
+.sankey-flow-node-rect {
+	transition: opacity 140ms ease;
+	shape-rendering: geometricPrecision;
+}
+
+.sankey-flow-diagram[data-border="subtle"] .sankey-flow-node-rect {
+	stroke: color-mix(in srgb, var(--text-normal) 28%, transparent);
+	stroke-width: 1px;
+}
+
+.sankey-flow-diagram[data-border="strong"] .sankey-flow-node-rect {
+	stroke: var(--text-normal);
+	stroke-width: 1px;
+}
+
+.sankey-flow-diagram.has-hover .sankey-flow-node:not(.is-related) .sankey-flow-node-rect {
+	opacity: 0.4;
+}
+
+.sankey-flow-diagram.has-hover .sankey-flow-label:not(.is-related) {
+	opacity: 0.45;
+}
+
+.sankey-flow-node.has-link,
+.sankey-flow-label.has-link {
+	cursor: pointer;
+}
+
+.sankey-flow-diagram.is-editable .sankey-flow-node {
+	cursor: grab;
+}
+
+.sankey-flow-node.is-selected .sankey-flow-node-rect {
+	stroke: var(--text-normal);
+	stroke-width: 1.5px;
+	paint-order: stroke;
+}
+
+.sankey-flow-label {
+	font-family: var(--font-interface);
+	font-size: var(--font-ui-small);
+	fill: var(--text-normal);
+	paint-order: stroke;
+	stroke: var(--background-primary);
+	stroke-width: 3px;
+	stroke-linejoin: round;
+	transition: opacity 140ms ease;
+}
+
+.sankey-flow-label-name {
+	font-weight: var(--font-medium, 500);
+}
+
+.sankey-flow-label-value {
+	fill: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+	font-weight: var(--font-normal, 400);
+}
+
+.sankey-flow-label.has-link .sankey-flow-label-name {
+	fill: var(--link-color, var(--text-accent));
+}
+
+.sankey-flow-label.has-link:hover .sankey-flow-label-name {
+	text-decoration: underline;
+}
+
+.sankey-flow-handle {
+	fill: var(--background-primary);
+	stroke: var(--interactive-accent);
+	stroke-width: 1.5px;
+	opacity: 0;
+	cursor: crosshair;
+	transition: opacity 120ms ease;
+}
+
+.sankey-flow-node:hover .sankey-flow-handle,
+.sankey-flow-node.is-selected .sankey-flow-handle {
+	opacity: 1;
+}
+
+@media (pointer: coarse) {
+	.sankey-flow-handle {
+		r: 9px;
+	}
+	.sankey-flow-node.is-selected .sankey-flow-handle {
+		opacity: 0.95;
+	}
+}
+
+.sankey-flow-connect-preview {
+	fill: none;
+	stroke: var(--interactive-accent);
+	stroke-width: 2px;
+	stroke-dasharray: 5 4;
+	pointer-events: none;
+}
+
+.sankey-flow-diagram.is-panning,
+.sankey-flow-diagram.is-dragging,
+.sankey-flow-diagram.is-dragging .sankey-flow-node {
+	cursor: grabbing;
+}
+
+.sankey-flow-diagram.is-connecting {
+	cursor: crosshair;
+}
+
+.sankey-flow-empty {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--size-4-4);
+	text-align: center;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	pointer-events: none;
+}
+
+/* ── Tooltip ─────────────────────────────────────────────────────────── */
+
+.sankey-flow-tooltip {
+	position: absolute;
+	left: 0;
+	top: 0;
+	z-index: var(--layer-tooltip, 40);
+	min-width: 180px;
+	max-width: 320px;
+	padding: var(--size-4-2) var(--size-4-3);
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	box-shadow: var(--shadow-s);
+	color: var(--text-normal);
+	font-family: var(--font-interface);
+	font-size: var(--font-ui-smaller);
+	line-height: 1.45;
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 100ms ease;
+}
+
+.sankey-flow-tooltip.is-visible {
+	opacity: 1;
+}
+
+.sankey-flow-tooltip-title {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-semibold, 600);
+	overflow-wrap: anywhere;
+}
+
+.sankey-flow-swatch {
+	flex: none;
+	width: 10px;
+	height: 10px;
+	border-radius: 3px;
+}
+
+.sankey-flow-tooltip-chip {
+	margin-left: auto;
+	padding: 0 var(--size-4-1);
+	border-radius: var(--radius-s);
+	background: var(--background-modifier-hover);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-normal, 400);
+}
+
+.sankey-flow-tooltip-meta {
+	color: var(--text-muted);
+	margin-bottom: var(--size-2-2);
+}
+
+.sankey-flow-tooltip-section {
+	margin-top: var(--size-4-2);
+	color: var(--text-faint);
+	font-size: calc(var(--font-ui-smaller) * 0.95);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.sankey-flow-tooltip-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto auto;
+	gap: var(--size-4-2);
+	align-items: baseline;
+}
+
+.sankey-flow-tooltip-name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.sankey-flow-tooltip-value {
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}
+
+.sankey-flow-tooltip-share,
+.sankey-flow-tooltip-more {
+	color: var(--text-faint);
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+	min-width: 3ch;
+}
+
+.sankey-flow-tooltip-desc {
+	margin-top: var(--size-4-2);
+	color: var(--text-muted);
+	white-space: pre-wrap;
+}
+
+.sankey-flow-tooltip-link {
+	margin-top: var(--size-4-2);
+	color: var(--text-accent);
+}
+
+.sankey-flow-sr-only {
+	position: absolute !important;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* ── Embeds (code blocks and ![[diagram]] transclusions) ─────────────── */
+
+.sankey-flow-embed {
+	position: relative;
+	margin: var(--size-4-2) 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-primary);
+	overflow: hidden;
+}
+
+.sankey-flow-embed-header {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	min-height: 32px;
+	padding: var(--size-2-2) var(--size-4-2) var(--size-2-2) var(--size-4-3);
+	border-bottom: 1px solid var(--background-modifier-border);
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+
+.sankey-flow-embed-title {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--text-normal);
+	font-weight: var(--font-medium, 500);
+}
+
+.sankey-flow-embed-actions {
+	display: flex;
+	gap: var(--size-2-1);
+	opacity: 0.55;
+	transition: opacity 120ms ease;
+}
+
+.sankey-flow-embed:hover .sankey-flow-embed-actions,
+.sankey-flow-embed:focus-within .sankey-flow-embed-actions {
+	opacity: 1;
+}
+
+.sankey-flow-embed-body {
+	position: relative;
+}
+
+/* Leave room for Obsidian's own "edit block" button on code blocks in Live Preview. */
+.markdown-source-view .cm-embed-block .sankey-flow-embed-header {
+	padding-inline-end: 40px;
+}
+
+.sankey-flow-issues {
+	padding: var(--size-4-2) var(--size-4-3);
+	border-top: 1px solid var(--background-modifier-border);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+.sankey-flow-issues summary {
+	cursor: pointer;
+	color: var(--text-warning);
+}
+
+.sankey-flow-issues li.is-error {
+	color: var(--text-error);
+}
+
+.sankey-flow-error {
+	padding: var(--size-4-3) var(--size-4-4);
+	border: 1px solid var(--background-modifier-error, var(--color-red));
+	border-radius: var(--radius-m);
+	color: var(--text-error);
+	background: var(--background-primary-alt);
+	font-size: var(--font-ui-small);
+}
+
+.sankey-flow-error-title {
+	font-weight: var(--font-semibold, 600);
+	margin-bottom: var(--size-2-2);
+}
+
+.sankey-flow-error-detail {
+	color: var(--text-muted);
+}
+
+/* ── Editor view ─────────────────────────────────────────────────────── */
+
+.sankey-flow-editor {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	padding: 0 !important;
+	overflow: hidden;
+}
+
+.sankey-flow-toolbar {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	padding: var(--size-2-3) var(--size-4-2);
+	border-bottom: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	flex-wrap: wrap;
+	min-height: 40px;
+}
+
+.sankey-flow-toolbar-group {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-1);
+}
+
+.sankey-flow-toolbar-sep {
+	width: 1px;
+	height: 18px;
+	margin: 0 var(--size-2-2);
+	background: var(--background-modifier-border);
+}
+
+.sankey-flow-toolbar-spacer {
+	flex: 1;
+}
+
+.sankey-flow-status {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+}
+
+.sankey-flow-status.is-warning {
+	color: var(--text-warning);
+	cursor: pointer;
+}
+
+.sankey-flow-body {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+}
+
+.sankey-flow-stage {
+	position: relative;
+	flex: 1;
+	min-width: 0;
+	background: var(--background-primary);
+}
+
+.sankey-flow-stage-controls {
+	position: absolute;
+	right: var(--size-4-3);
+	bottom: var(--size-4-3);
+	display: flex;
+	gap: 1px;
+	padding: 2px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-primary);
+	box-shadow: var(--shadow-s);
+	z-index: 2;
+}
+
+.sankey-flow-sidebar {
+	display: flex;
+	/* Room for Obsidian's floating status bar, which overlaps the bottom-right corner. */
+	padding-bottom: var(--sankey-flow-status-bar-space, 26px);
+	flex-direction: column;
+	width: var(--sankey-flow-sidebar-width, 340px);
+	min-width: 260px;
+	max-width: 60%;
+	border-left: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+}
+
+.sankey-flow-sidebar.is-collapsed {
+	display: none;
+}
+
+.sankey-flow-tabs {
+	display: flex;
+	gap: var(--size-2-1);
+	padding: var(--size-2-3) var(--size-4-2) 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.sankey-flow-tab {
+	padding: var(--size-2-3) var(--size-4-2);
+	border: none;
+	border-bottom: 2px solid transparent;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	cursor: pointer;
+}
+
+.sankey-flow-tab:hover {
+	color: var(--text-normal);
+	background: transparent;
+}
+
+.sankey-flow-tab.is-active {
+	color: var(--text-normal);
+	border-bottom-color: var(--interactive-accent);
+}
+
+.sankey-flow-tab-count {
+	margin-left: var(--size-2-2);
+	color: var(--text-faint);
+	font-variant-numeric: tabular-nums;
+}
+
+.sankey-flow-panel {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.sankey-flow-panel-scroll {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding: var(--size-4-2) var(--size-4-3) var(--size-4-4);
+}
+
+.sankey-flow-panel-bar {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	padding: var(--size-4-2) var(--size-4-3);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.sankey-flow-panel-bar input[type="search"] {
+	flex: 1;
+	min-width: 0;
+}
+
+.sankey-flow-panel-footer {
+	display: flex;
+	gap: var(--size-2-2);
+	flex-wrap: wrap;
+	padding: var(--size-4-2) var(--size-4-3);
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.sankey-flow-hint {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	line-height: 1.5;
+	margin: var(--size-4-2) 0;
+}
+
+/* Flow table (virtualised) */
+
+.sankey-flow-table {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	position: relative;
+	font-size: var(--font-ui-small);
+}
+
+.sankey-flow-table-head,
+.sankey-flow-table-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 76px 28px;
+	align-items: center;
+	gap: var(--size-2-2);
+	padding: 0 var(--size-4-2) 0 var(--size-4-3);
+}
+
+.sankey-flow-table-head {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	height: 30px;
+	background: var(--background-secondary);
+	border-bottom: 1px solid var(--background-modifier-border);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.sankey-flow-table-head button {
+	all: unset;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	white-space: nowrap;
+}
+
+.sankey-flow-table-head button:focus-visible {
+	box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+	border-radius: var(--radius-s);
+}
+
+.sankey-flow-table-head .is-numeric {
+	justify-content: flex-end;
+}
+
+.sankey-flow-table-row {
+	position: absolute;
+	left: 0;
+	right: 0;
+	height: 32px;
+}
+
+.sankey-flow-table-row:hover,
+.sankey-flow-table-row.is-selected {
+	background: var(--background-modifier-hover);
+}
+
+.sankey-flow-table-row.is-selected {
+	box-shadow: inset 2px 0 0 var(--interactive-accent);
+}
+
+.sankey-flow-table-row.is-invalid input.sankey-flow-cell-value {
+	color: var(--text-error);
+}
+
+.sankey-flow-table-row input {
+	width: 100%;
+	height: 26px;
+	padding: 0 var(--size-2-3);
+	border: 1px solid transparent;
+	background: transparent;
+	box-shadow: none;
+	font-size: var(--font-ui-small);
+}
+
+.sankey-flow-table-row input:hover {
+	border-color: var(--background-modifier-border);
+}
+
+.sankey-flow-table-row input:focus {
+	border-color: var(--interactive-accent);
+	background: var(--background-primary);
+}
+
+.sankey-flow-cell-value {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+.sankey-flow-row-menu {
+	display: flex;
+	justify-content: center;
+	opacity: 0;
+}
+
+.sankey-flow-table-row:hover .sankey-flow-row-menu,
+.sankey-flow-table-row:focus-within .sankey-flow-row-menu,
+.sankey-flow-table-row.is-selected .sankey-flow-row-menu {
+	opacity: 1;
+}
+
+.sankey-flow-table-empty {
+	padding: var(--size-4-6) var(--size-4-4);
+	text-align: center;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+/* Node list */
+
+.sankey-flow-node-list {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+.sankey-flow-node-item {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	padding: var(--size-2-3) var(--size-4-2);
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	font-size: var(--font-ui-small);
+}
+
+.sankey-flow-node-item:hover,
+.sankey-flow-node-item.is-selected {
+	background: var(--background-modifier-hover);
+}
+
+.sankey-flow-node-item.is-selected {
+	box-shadow: inset 2px 0 0 var(--interactive-accent);
+}
+
+.sankey-flow-node-item:focus-visible {
+	outline: 2px solid var(--background-modifier-border-focus);
+	outline-offset: -2px;
+}
+
+.sankey-flow-node-item-label {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.sankey-flow-node-item-value {
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+	font-size: var(--font-ui-smaller);
+}
+
+.sankey-flow-node-item-icons {
+	display: flex;
+	gap: 2px;
+	color: var(--text-faint);
+}
+
+.sankey-flow-node-item-icons svg {
+	width: 14px;
+	height: 14px;
+}
+
+.sankey-flow-node-item-move {
+	display: flex;
+	opacity: 0;
+}
+
+.sankey-flow-node-item:hover .sankey-flow-node-item-move,
+.sankey-flow-node-item:focus-within .sankey-flow-node-item-move {
+	opacity: 1;
+}
+
+/* Inspector */
+
+.sankey-flow-inspector .setting-item {
+	padding: var(--size-4-2) 0;
+}
+
+/* The sidebar is too narrow for side-by-side setting rows, so labels sit above their controls. */
+.sankey-flow-stack .setting-item:not(.setting-item-heading) {
+	flex-direction: column;
+	align-items: stretch;
+	gap: var(--size-2-3);
+}
+
+.sankey-flow-stack .setting-item-info {
+	margin-inline-end: 0;
+}
+
+.sankey-flow-stack .setting-item-control {
+	justify-content: flex-start;
+	flex-wrap: wrap;
+}
+
+.sankey-flow-stack .setting-item-control input[type="range"] {
+	flex: 1;
+}
+
+.sankey-flow-inspector .setting-item-control input[type="text"],
+.sankey-flow-inspector .setting-item-control input[type="number"],
+.sankey-flow-inspector .setting-item-control textarea {
+	width: 100%;
+}
+
+.sankey-flow-inspector .setting-item-control textarea {
+	min-height: 64px;
+	resize: vertical;
+}
+
+.sankey-flow-inspector-heading {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	margin: var(--size-4-2) 0 var(--size-4-1);
+	font-size: var(--font-ui-medium);
+	font-weight: var(--font-semibold, 600);
+	overflow-wrap: anywhere;
+}
+
+.sankey-flow-inspector-sub {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	margin-bottom: var(--size-4-2);
+}
+
+.sankey-flow-connection-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin-bottom: var(--size-4-2);
+}
+
+.sankey-flow-connection {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	padding: var(--size-2-2) var(--size-4-2);
+	border-radius: var(--radius-s);
+	font-size: var(--font-ui-small);
+	cursor: pointer;
+}
+
+.sankey-flow-connection:hover {
+	background: var(--background-modifier-hover);
+}
+
+.sankey-flow-connection-label {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.sankey-flow-connection-value {
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.sankey-flow-section-title {
+	margin: var(--size-4-4) 0 var(--size-4-1);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-semibold, 600);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.sankey-flow-color-row {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	flex-wrap: wrap;
+}
+
+.sankey-flow-color-chip {
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border-radius: 50%;
+	border: 1px solid var(--background-modifier-border);
+	cursor: pointer;
+	box-shadow: none;
+}
+
+.sankey-flow-color-chip.is-active {
+	box-shadow: 0 0 0 2px var(--background-primary), 0 0 0 4px var(--interactive-accent);
+}
+
+.sankey-flow-banner {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	flex-wrap: wrap;
+	padding: var(--size-4-2) var(--size-4-3);
+	border-bottom: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary-alt, var(--background-secondary));
+	font-size: var(--font-ui-small);
+}
+
+.sankey-flow-banner.is-warning {
+	box-shadow: inset 3px 0 0 var(--color-orange);
+}
+
+.sankey-flow-banner.is-error {
+	box-shadow: inset 3px 0 0 var(--color-red);
+}
+
+.sankey-flow-banner-text {
+	flex: 1;
+	min-width: 200px;
+}
+
+.sankey-flow-load-error {
+	margin: auto;
+	max-width: 520px;
+	padding: var(--size-4-8) var(--size-4-4);
+	text-align: center;
+}
+
+.sankey-flow-load-error h3 {
+	margin-top: 0;
+}
+
+.sankey-flow-load-error p {
+	color: var(--text-muted);
+}
+
+/* ── Modals ──────────────────────────────────────────────────────────── */
+
+.sankey-flow-import-modal {
+	width: min(860px, 92vw);
+}
+
+.sankey-flow-import-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: var(--size-4-4);
+}
+
+.sankey-flow-import-preview {
+	height: 260px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-primary);
+}
+
+.sankey-flow-raw-table {
+	max-height: 260px;
+	overflow: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	font-size: var(--font-ui-smaller);
+}
+
+.sankey-flow-raw-table table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.sankey-flow-raw-table th,
+.sankey-flow-raw-table td {
+	padding: var(--size-2-2) var(--size-4-2);
+	border-bottom: 1px solid var(--background-modifier-border);
+	text-align: left;
+	white-space: nowrap;
+	max-width: 200px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.sankey-flow-raw-table th {
+	position: sticky;
+	top: 0;
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	font-weight: var(--font-medium, 500);
+}
+
+.sankey-flow-raw-table th.is-source,
+.sankey-flow-raw-table th.is-target,
+.sankey-flow-raw-table th.is-value {
+	color: var(--text-accent);
+}
+
+.sankey-flow-import-summary {
+	margin-top: var(--size-4-2);
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+
+.sankey-flow-import-summary.is-error {
+	color: var(--text-error);
+}
+
+.sankey-flow-import-summary ul {
+	margin: var(--size-2-2) 0 0;
+	padding-left: var(--size-4-5);
+}
+
+.sankey-flow-dropzone {
+	padding: var(--size-4-4);
+	border: 1px dashed var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	text-align: center;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	transition: border-color 120ms ease, background 120ms ease;
+}
+
+.sankey-flow-dropzone.is-over {
+	border-color: var(--interactive-accent);
+	background: var(--background-modifier-hover);
+}
+
+.sankey-flow-modal-buttons {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--size-4-2);
+	margin-top: var(--size-4-4);
+}
+
+/* ── Diagram manager ─────────────────────────────────────────────────── */
+
+.sankey-flow-manager {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	padding: 0 !important;
+}
+
+.sankey-flow-manager-bar {
+	display: flex;
+	gap: var(--size-2-2);
+	align-items: center;
+	padding: var(--size-4-2) var(--size-4-3);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.sankey-flow-manager-bar input[type="search"] {
+	flex: 1;
+	min-width: 0;
+}
+
+.sankey-flow-manager-list {
+	flex: 1;
+	overflow-y: auto;
+	padding: var(--size-2-2) var(--size-4-2);
+}
+
+.sankey-flow-manager-item {
+	padding: var(--size-4-2) var(--size-4-2);
+	border-radius: var(--radius-s);
+	cursor: pointer;
+}
+
+.sankey-flow-manager-item:hover,
+.sankey-flow-manager-item:focus-visible {
+	background: var(--background-modifier-hover);
+	outline: none;
+}
+
+.sankey-flow-manager-item-row {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+}
+
+.sankey-flow-manager-item-name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+}
+
+.sankey-flow-manager-item-meta {
+	margin-top: 2px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.sankey-flow-manager-refs {
+	margin: var(--size-2-2) 0 0 var(--size-4-2);
+	font-size: var(--font-ui-smaller);
+}
+
+.sankey-flow-manager-refs a {
+	display: block;
+	padding: 2px 0;
+}
+
+.sankey-flow-manager-empty {
+	padding: var(--size-4-8) var(--size-4-4);
+	text-align: center;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+/* ── Small screens ───────────────────────────────────────────────────── */
+
+.sankey-flow-editor.is-narrow .sankey-flow-body {
+	flex-direction: column;
+}
+
+.sankey-flow-editor.is-narrow .sankey-flow-sidebar {
+	width: auto;
+	max-width: none;
+	min-width: 0;
+	height: 45%;
+	border-left: none;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.sankey-flow-editor.is-narrow .sankey-flow-import-grid {
+	grid-template-columns: 1fr;
+}
+
+@media (max-width: 640px) {
+	.sankey-flow-import-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sankey-flow-link,
+	.sankey-flow-node-rect,
+	.sankey-flow-label,
+	.sankey-flow-handle,
+	.sankey-flow-tooltip,
+	.sankey-flow-embed-actions {
+		transition: none;
+	}
+}
