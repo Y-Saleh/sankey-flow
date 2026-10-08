@@ -115,7 +115,7 @@ export class ImportModal extends Modal {
 		this.mappingEl = el.createDiv();
 		new Setting(el)
 			.setName("Number format")
-			.setDesc("How decimals are written in the Value column.")
+			.setDesc("How decimals are written in the value column.")
 			.addDropdown((d) =>
 				d
 					.addOptions({ auto: "Detect automatically", dot: "1,234.5 (dot decimal)", comma: "1.234,5 (comma decimal)" })

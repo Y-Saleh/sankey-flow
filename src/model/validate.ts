@@ -99,7 +99,7 @@ export function normalizeDocument(input: unknown): NormalizeResult {
 
 	const version = raw.version;
 	if (version !== undefined && (typeof version !== "number" || !Number.isInteger(version) || version < 0)) {
-		throw new SankeyFormatError(`Unrecognised schema version "${String(version)}".`, "invalid");
+		throw new SankeyFormatError(`Unrecognised schema version ${JSON.stringify(version)}.`, "invalid");
 	}
 	if (typeof version === "number" && version > SCHEMA_VERSION) {
 		throw new SankeyFormatError(
@@ -145,8 +145,8 @@ export function normalizeDocument(input: unknown): NormalizeResult {
  * endpoints may be indices, ids or names.
  */
 function migrateV0(raw: Raw, issues: ValidationIssue[]): Raw {
-	const rawNodes = Array.isArray(raw.nodes) ? raw.nodes : [];
-	const rawFlows = Array.isArray(raw.flows) ? raw.flows : Array.isArray(raw.links) ? raw.links : [];
+	const rawNodes: unknown[] = Array.isArray(raw.nodes) ? raw.nodes : [];
+	const rawFlows: unknown[] = Array.isArray(raw.flows) ? raw.flows : Array.isArray(raw.links) ? raw.links : [];
 
 	const taken = new Set<string>();
 	const nodes: Raw[] = rawNodes.map((n, index) => {

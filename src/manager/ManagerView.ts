@@ -91,8 +91,7 @@ export class DiagramManagerView extends ItemView {
 			const empty = this.listEl.createDiv("sankey-flow-manager-empty");
 			empty.createDiv({ text: this.search ? "No diagrams match your search." : "No Sankey diagrams yet." });
 			if (!this.search) {
-				const btn = empty.createEl("button", { text: "Create a diagram", cls: "mod-cta" });
-				btn.style.marginTop = "var(--size-4-3)";
+				const btn = empty.createEl("button", { text: "Create a diagram", cls: "mod-cta sankey-flow-manager-cta" });
 				btn.addEventListener("click", () => void this.plugin.createDiagramInteractive());
 			}
 			return;

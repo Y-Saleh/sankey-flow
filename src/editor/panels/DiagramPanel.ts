@@ -159,7 +159,7 @@ export class DiagramPanel implements Panel {
 		new Setting(el).setName("Value format").setHeading();
 		new Setting(el)
 			.setName("Prefix and suffix")
-			.setDesc("For example “$” or “ TWh”.")
+			.setDesc("Text shown before or after every value, such as a currency symbol or a unit.")
 			.addText((t) =>
 				t
 					.setPlaceholder("Prefix")

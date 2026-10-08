@@ -130,7 +130,7 @@ export function firstRowLooksLikeHeader(rows: string[][]): boolean {
 /** Splits CSV rows into a header + body table. */
 export function tableFromRows(rows: string[][], hasHeader: boolean): RawTable {
 	const width = rows.reduce((m, r) => Math.max(m, r.length), 0);
-	const pad = (r: string[]) => (r.length < width ? [...r, ...Array(width - r.length).fill("")] : r);
+	const pad = (r: string[]): string[] => (r.length < width ? [...r, ...new Array<string>(width - r.length).fill("")] : r);
 	if (hasHeader && rows.length) {
 		const headers = pad(rows[0]).map((h, i) => h.trim() || `Column ${i + 1}`);
 		return { headers, rows: rows.slice(1).map(pad) };

@@ -82,7 +82,7 @@ export class NodesPanel implements Panel {
 			item.setAttr("aria-selected", String(selected));
 
 			const swatch = item.createDiv("sankey-flow-swatch");
-			swatch.style.background = this.host.nodeColor(node.id);
+			swatch.setCssProps({ "--sankey-flow-swatch": this.host.nodeColor(node.id) });
 			const label = item.createDiv({ cls: "sankey-flow-node-item-label", text: node.label });
 			const icons = item.createDiv("sankey-flow-node-item-icons");
 			if (node.link) {
@@ -134,7 +134,7 @@ export class NodesPanel implements Panel {
 				else if (e.key === "F2") this.startRename(label, node.id, node.label);
 				else if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
 					this.move(node.id, index + (e.key === "ArrowUp" ? -1 : 1));
-					window.requestAnimationFrame(() => (this.list.querySelector(`[data-id="${CSS.escape(node.id)}"]`) as HTMLElement | null)?.focus());
+					window.requestAnimationFrame(() => this.list.querySelector<HTMLElement>(`[data-id="${CSS.escape(node.id)}"]`)?.focus());
 				} else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
 					const sibling = (e.key === "ArrowDown" ? item.nextElementSibling : item.previousElementSibling) as HTMLElement | null;
 					sibling?.focus();
@@ -165,7 +165,7 @@ export class NodesPanel implements Panel {
 			} else {
 				this.render();
 			}
-			(this.list.querySelector(`[data-id="${CSS.escape(id)}"]`) as HTMLElement | null)?.focus();
+			this.list.querySelector<HTMLElement>(`[data-id="${CSS.escape(id)}"]`)?.focus();
 		};
 		input.addEventListener("keydown", (e) => {
 			e.stopPropagation();

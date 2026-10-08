@@ -19,7 +19,7 @@ export function parseNumber(input: string, format: DecimalFormat = "auto"): numb
 		s = s.slice(1, -1).trim();
 	}
 	// Strip currency symbols, percent signs, unit-free whitespace and apostrophe grouping.
-	s = s.replace(/[\s  '’]/g, "").replace(/^[^\d.,+-]+|[^\d.,]+$/g, "");
+	s = s.replace(/[\s\u00a0\u202f'\u2019]/g, "").replace(/^[^\d.,+-]+|[^\d.,]+$/g, "");
 	if (/^[+-]/.test(s)) {
 		if (s[0] === "-") negative = !negative;
 		s = s.slice(1);

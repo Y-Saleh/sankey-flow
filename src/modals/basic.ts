@@ -158,21 +158,26 @@ export class CsvSourceModal extends FuzzySuggestModal<TFile | typeof FROM_COMPUT
 
 	onChooseItem(item: TFile | typeof FROM_COMPUTER): void {
 		if (item === FROM_COMPUTER) {
-			pickLocalFile(".csv,.tsv,.txt,text/csv").then((picked) => {
-				if (picked) this.onPick(picked.text, picked.name);
-			});
+			void this.pickFromComputer();
 			return;
 		}
-		void this.app.vault.cachedRead(item).then((text) => this.onPick(text, item.basename));
+		void this.pickFromVault(item);
+	}
+
+	private async pickFromComputer(): Promise<void> {
+		const picked = await pickLocalFile(".csv,.tsv,.txt,text/csv");
+		if (picked) this.onPick(picked.text, picked.name);
+	}
+
+	private async pickFromVault(file: TFile): Promise<void> {
+		this.onPick(await this.app.vault.cachedRead(file), file.basename);
 	}
 }
 
 /** Opens the system file dialog and reads the chosen text file. Nothing is written to disk. */
 export function pickLocalFile(accept: string): Promise<{ text: string; name: string } | null> {
 	return new Promise((resolve) => {
-		const input = document.createElement("input");
-		input.type = "file";
-		input.accept = accept;
+		const input = createEl("input", { type: "file", attr: { accept } });
 		input.addEventListener("change", () => {
 			const file = input.files?.[0];
 			if (!file) return resolve(null);

@@ -96,7 +96,7 @@ export class InspectorPanel implements Panel {
 
 	private heading(text: string, color?: string): void {
 		const h = this.scroll.createDiv("sankey-flow-inspector-heading");
-		if (color) h.createDiv("sankey-flow-swatch").style.background = color;
+		if (color) h.createDiv("sankey-flow-swatch").setCssProps({ "--sankey-flow-swatch": color });
 		h.createSpan({ text });
 	}
 
@@ -156,9 +156,7 @@ export class InspectorPanel implements Panel {
 		this.connections(node);
 		this.addFlowControls(node);
 
-		const danger = this.scroll.createDiv("sankey-flow-panel-footer");
-		danger.style.borderTop = "none";
-		danger.style.paddingLeft = "0";
+		const danger = this.scroll.createDiv("sankey-flow-panel-footer sankey-flow-inline-actions");
 		new ButtonComponent(danger)
 			.setButtonText("Delete node")
 			.setWarning()
@@ -206,8 +204,7 @@ export class InspectorPanel implements Panel {
 				d.setValue(target).onChange((v) => (target = v));
 			})
 			.addText((t) => {
-				t.inputEl.addClass("sankey-flow-cell-value");
-				t.inputEl.style.width = "80px";
+				t.inputEl.addClass("sankey-flow-cell-value", "sankey-flow-value-input");
 				t.setValue(String(value)).onChange((v) => (value = parseNumber(v) ?? NaN));
 			})
 			.addButton((b) =>
@@ -270,9 +267,7 @@ export class InspectorPanel implements Panel {
 		this.linkSetting(flow.link ?? "", (link) => controller.update(link ? "Set flow link" : "Remove flow link", (d) => updateFlow(d, id, { link })));
 		this.colorSetting(flow.color ?? null, (color) => controller.update("Change flow colour", (d) => updateFlow(d, id, { color })));
 
-		const actions = this.scroll.createDiv("sankey-flow-panel-footer");
-		actions.style.borderTop = "none";
-		actions.style.paddingLeft = "0";
+		const actions = this.scroll.createDiv("sankey-flow-panel-footer sankey-flow-inline-actions");
 		new ButtonComponent(actions)
 			.setButtonText("Swap direction")
 			.onClick(() => controller.update("Swap flow direction", (d) => updateFlow(d, id, { source: flow.target, target: flow.source })));
@@ -289,13 +284,13 @@ export class InspectorPanel implements Panel {
 	private linkSetting(current: string, commit: (link: string | null) => void): void {
 		const setting = new Setting(this.scroll).setName("Link").setDesc("A note, heading, block, canvas, attachment or URL.");
 		setting.addText((t) => {
-			t.setPlaceholder("[[Note]] or https://…").setValue(current);
+			t.setPlaceholder("Note name, [[link]] or web address").setValue(current);
 			const apply = (value: string) => {
 				const trimmed = value.trim();
 				if (!trimmed) return commit(null);
 				const link = canonicalLink(trimmed);
 				if (!link) {
-					new Notice("That link is not supported. Use a note name, [[wikilink]] or an http(s) URL.");
+					new Notice("That link is not supported. Use a note name, a [[wikilink]] or a web URL.");
 					t.setValue(current);
 					return;
 				}
@@ -308,7 +303,7 @@ export class InspectorPanel implements Panel {
 			setting.addExtraButton((b) =>
 				b
 					.setIcon("arrow-up-right")
-					.setTooltip("Open link (Ctrl/Cmd-click for a new tab)")
+					.setTooltip("Open link")
 					.onClick(() => void openLink(this.host.plugin.app, current, this.host.sourcePath(), false)),
 			);
 			setting.addExtraButton((b) => b.setIcon("x").setTooltip("Remove link").onClick(() => commit(null)));
@@ -323,7 +318,7 @@ export class InspectorPanel implements Panel {
 		auto.addEventListener("click", () => commit(null));
 		for (const [value, name] of COLOR_CHIPS) {
 			const chip = row.createEl("button", { cls: "sankey-flow-color-chip", attr: { "aria-label": name, "aria-pressed": String(current === value) } });
-			chip.style.background = value;
+			chip.setCssProps({ "--sankey-flow-swatch": value });
 			chip.toggleClass("is-active", current === value);
 			chip.addEventListener("click", () => commit(value));
 		}

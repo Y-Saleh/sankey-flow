@@ -114,13 +114,13 @@ export default class SankeyFlowPlugin extends Plugin {
 			workspace.on("file-menu", (menu, file, source) => {
 				if (!(file instanceof TFile) || source === "sankey-flow-manager") return;
 				if (this.store.isDiagramFile(file)) {
-					menu.addItem((i) => i.setSection("open").setTitle("Open in Sankey editor").setIcon(ICON_ID).onClick(() => void this.openDiagram(file, false)));
-					menu.addItem((i) => i.setSection("action").setTitle("Copy Sankey embed link").setIcon("link").onClick(() => void this.copyEmbedCode(file)));
+					menu.addItem((i) => i.setSection("open").setTitle("Open in diagram editor").setIcon(ICON_ID).onClick(() => void this.openDiagram(file, false)));
+					menu.addItem((i) => i.setSection("action").setTitle("Copy diagram embed link").setIcon("link").onClick(() => void this.copyEmbedCode(file)));
 				} else if (["csv", "tsv"].includes(file.extension.toLowerCase())) {
 					menu.addItem((i) =>
 						i
 							.setSection("action")
-							.setTitle("Create Sankey diagram from CSV")
+							.setTitle("Create diagram from CSV")
 							.setIcon(ICON_ID)
 							.onClick(async () => this.createFromCsv(await this.app.vault.cachedRead(file), file.basename)),
 					);
@@ -131,7 +131,7 @@ export default class SankeyFlowPlugin extends Plugin {
 		this.registerEvent(
 			workspace.on("editor-menu", (menu, editor) => {
 				if (!findTableAt(editor.getValue().split("\n"), editor.getCursor().line)) return;
-				menu.addItem((i) => i.setSection("insert").setTitle("Create Sankey diagram from table").setIcon(ICON_ID).onClick(() => this.createFromTable(editor)));
+				menu.addItem((i) => i.setSection("insert").setTitle("Create diagram from table").setIcon(ICON_ID).onClick(() => this.createFromTable(editor)));
 			}),
 		);
 	}
@@ -266,7 +266,7 @@ export default class SankeyFlowPlugin extends Plugin {
 			return;
 		}
 		if (!found) {
-			new Notice("No table found at the cursor. Place the cursor inside a Markdown table (with a |---| row under the header) and try again.");
+			new Notice("No table found here. Click inside a Markdown table, including the separator row below its header, and try again.");
 			return;
 		}
 		const sourcePath = view?.file?.path ?? "";

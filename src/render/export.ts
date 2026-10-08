@@ -32,7 +32,7 @@ function toPortableColor(value: string): string {
 	if (!value || value === "none" || value.startsWith("url(")) return value;
 	const cached = colorCache.get(value);
 	if (cached) return cached;
-	const canvas = document.createElement("canvas");
+	const canvas = createEl("canvas");
 	canvas.width = canvas.height = 1;
 	const ctx = canvas.getContext("2d", { willReadFrequently: true });
 	if (!ctx) return value;
@@ -163,7 +163,7 @@ export async function svgToPng(exported: SvgExport, scale: number): Promise<Arra
 			img.onerror = () => reject(new Error("The SVG could not be rasterised."));
 			img.src = url;
 		});
-		const canvas = document.createElement("canvas");
+		const canvas = createEl("canvas");
 		const s = Math.min(8, Math.max(1, scale));
 		canvas.width = Math.max(1, Math.round(exported.width * s));
 		canvas.height = Math.max(1, Math.round(exported.height * s));

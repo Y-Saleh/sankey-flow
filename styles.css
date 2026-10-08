@@ -215,6 +215,7 @@
 	pointer-events: none;
 	opacity: 0;
 	transition: opacity 100ms ease;
+	transform: translate(var(--sankey-flow-tip-x, 0), var(--sankey-flow-tip-y, 0));
 }
 
 .sankey-flow-tooltip.is-visible {
@@ -231,6 +232,7 @@
 }
 
 .sankey-flow-swatch {
+	background: var(--sankey-flow-swatch, var(--interactive-accent));
 	flex: none;
 	width: 10px;
 	height: 10px;
@@ -355,6 +357,7 @@
 
 .sankey-flow-embed-body {
 	position: relative;
+	height: var(--sankey-flow-embed-height, 360px);
 }
 
 /* Leave room for Obsidian's own "edit block" button on code blocks in Live Preview. */
@@ -615,8 +618,14 @@
 	justify-content: flex-end;
 }
 
+.sankey-flow-table-body {
+	position: relative;
+	height: var(--sankey-flow-table-height, 0);
+}
+
 .sankey-flow-table-row {
 	position: absolute;
+	top: var(--sankey-flow-row-top, 0);
 	left: 0;
 	right: 0;
 	height: 32px;
@@ -849,6 +858,7 @@
 }
 
 .sankey-flow-color-chip {
+	background: var(--sankey-flow-swatch, transparent);
 	width: 18px;
 	height: 18px;
 	padding: 0;
@@ -1111,4 +1121,27 @@
 	.sankey-flow-embed-actions {
 		transition: none;
 	}
+}
+
+/* ── Helpers ─────────────────────────────────────────────────────────── */
+
+.sankey-flow-hidden {
+	display: none;
+}
+
+.sankey-flow-table-row.sankey-flow-add-row {
+	position: static;
+}
+
+.sankey-flow-panel-footer.sankey-flow-inline-actions {
+	border-top: none;
+	padding-left: 0;
+}
+
+.sankey-flow-value-input {
+	width: 80px;
+}
+
+.sankey-flow-manager-cta {
+	margin-top: var(--size-4-3);
 }

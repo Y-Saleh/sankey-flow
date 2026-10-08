@@ -222,7 +222,7 @@ export class SankeyBlock extends MarkdownRenderChild {
 			this.titleEl.setText(title);
 			this.titleEl.toggle(!!title);
 		}
-		if (this.bodyEl) this.bodyEl.style.height = `${this.height()}px`;
+		this.bodyEl?.setCssProps({ "--sankey-flow-embed-height": `${this.height()}px` });
 		this.renderer?.setData(doc, this.plugin.renderConfig(doc, "embed", this.options), animate);
 		this.renderIssues();
 	}

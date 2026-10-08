@@ -92,6 +92,8 @@ const MAX_ZOOM = 8;
 const DRAG_THRESHOLD = 4;
 const ANIMATION_MS = 240;
 const SR_TABLE_LIMIT = 300;
+/** Class that hides SVG and HTML parts of the diagram. */
+const HIDDEN = "sankey-flow-hidden";
 
 let instanceCounter = 0;
 
@@ -107,8 +109,7 @@ function svg<K extends keyof SVGElementTagNameMap>(
 }
 
 function div(cls: string, parent?: HTMLElement): HTMLDivElement {
-	const el = document.createElement("div");
-	el.className = cls;
+	const el = createDiv({ cls });
 	parent?.appendChild(el);
 	return el;
 }
@@ -196,17 +197,15 @@ export class SankeyRenderer {
 		this.nodeLayer = svg("g", { class: "sankey-flow-nodes" }, this.viewport);
 		this.labelLayer = svg("g", { class: "sankey-flow-labels" }, this.viewport);
 		this.preview = svg("path", { class: "sankey-flow-connect-preview" }, this.viewport);
-		this.preview.style.display = "none";
+		this.preview.classList.add(HIDDEN);
 
 		this.emptyEl = div("sankey-flow-empty", this.el);
-		this.emptyEl.style.display = "none";
+		this.emptyEl.hide();
 		this.tooltip = div("sankey-flow-tooltip", this.el);
 		this.tooltip.setAttribute("role", "tooltip");
 		this.live = div("sankey-flow-sr-only", this.el);
 		this.live.setAttribute("aria-live", "polite");
-		this.srTable = document.createElement("table");
-		this.srTable.className = "sankey-flow-sr-only";
-		this.el.appendChild(this.srTable);
+		this.srTable = this.el.createEl("table", { cls: "sankey-flow-sr-only" });
 
 		this.bindEvents();
 		this.resizeObserver = new ResizeObserver(() => this.onResize());
@@ -227,7 +226,7 @@ export class SankeyRenderer {
 	/** Shows a message instead of a diagram (empty or invalid data). */
 	setMessage(message: string | null): void {
 		this.emptyEl.textContent = message ?? "";
-		this.emptyEl.style.display = message ? "" : "none";
+		this.emptyEl.toggle(!!message);
 	}
 
 	setSelection(selection: Selection, silent = false): void {
@@ -266,7 +265,7 @@ export class SankeyRenderer {
 		const b = this.layout?.bounds ?? { x0: 0, y0: 0, x1: 100, y1: 100 };
 		let { x0, x1 } = b;
 		for (const els of this.nodeEls.values()) {
-			if (els.label.style.display === "none") continue;
+			if (els.label.classList.contains(HIDDEN)) continue;
 			try {
 				const bb = els.label.getBBox();
 				x0 = Math.min(x0, bb.x);
@@ -285,8 +284,8 @@ export class SankeyRenderer {
 	destroy(): void {
 		this.destroyed = true;
 		this.resizeObserver?.disconnect();
-		if (this.frame !== null) cancelAnimationFrame(this.frame);
-		if (this.animation !== null) cancelAnimationFrame(this.animation);
+		if (this.frame !== null) window.cancelAnimationFrame(this.frame);
+		if (this.animation !== null) window.cancelAnimationFrame(this.animation);
 		this.el.remove();
 	}
 
@@ -295,7 +294,7 @@ export class SankeyRenderer {
 	private scheduleRender(animate: boolean): void {
 		this.pendingAnimate = this.pendingAnimate || animate;
 		if (this.frame !== null || this.destroyed) return;
-		this.frame = requestAnimationFrame(() => {
+		this.frame = window.requestAnimationFrame(() => {
 			this.frame = null;
 			const anim = this.pendingAnimate;
 			this.pendingAnimate = false;
@@ -457,7 +456,7 @@ export class SankeyRenderer {
 			els.label.classList.toggle("has-link", !!node.link);
 
 			const showLabel = config.showLabels && !(this.large && ln.y1 - ln.y0 < 7);
-			els.label.style.display = showLabel ? "" : "none";
+			els.label.classList.toggle(HIDDEN, !showLabel);
 			els.name.textContent = truncate(node.label, 48);
 			els.value.textContent = config.showValues ? formatValue(ln.value, config.format) : "";
 			const right = (ln.x0 + ln.x1) / 2 < half || layout.columns === 1;
@@ -519,7 +518,7 @@ export class SankeyRenderer {
 
 	private animateTo(layout: SankeyLayout): void {
 		if (this.animation !== null) {
-			cancelAnimationFrame(this.animation);
+			window.cancelAnimationFrame(this.animation);
 			// Continue from wherever the interrupted animation got to.
 			this.shownNodes = new Map([...this.shownNodes, ...this.frameNodes]);
 			this.shownLinks = new Map([...this.shownLinks, ...this.frameLinks]);
@@ -530,9 +529,9 @@ export class SankeyRenderer {
 			const t = Math.min(1, (now - start) / ANIMATION_MS);
 			const done = t >= 1;
 			this.drawFrame(layout, done ? 1 : easeOut(t), done);
-			this.animation = done ? null : requestAnimationFrame(step);
+			this.animation = done ? null : window.requestAnimationFrame(step);
 		};
-		this.animation = requestAnimationFrame(step);
+		this.animation = window.requestAnimationFrame(step);
 	}
 
 	private positionNode(id: string, box: Box): void {
@@ -573,14 +572,10 @@ export class SankeyRenderer {
 		this.labelEl.textContent = `${this.options.ariaLabel}: ${title}. ${layout.nodes.length} nodes, ${layout.links.length} flows. Use arrow keys to move between nodes.`;
 		// A hidden table gives screen readers the full data, independent of colour or geometry.
 		this.srTable.replaceChildren();
-		const caption = document.createElement("caption");
-		caption.textContent = `Flows in ${title}`;
-		this.srTable.appendChild(caption);
+		this.srTable.createEl("caption", { text: `Flows in ${title}` });
 		const head = this.srTable.createTHead().insertRow();
 		for (const h of ["Source", "Target", "Value"]) {
-			const th = document.createElement("th");
-			th.textContent = h;
-			head.appendChild(th);
+			head.createEl("th", { text: h });
 		}
 		const body = this.srTable.createTBody();
 		const config = this.config as RenderConfig;
@@ -772,7 +767,7 @@ export class SankeyRenderer {
 				const sy = (ln.y0 + ln.y1) / 2;
 				const mx = sx + (to.x - sx) / 2;
 				this.preview.setAttribute("d", `M${r(sx)},${r(sy)}C${r(mx)},${r(sy)} ${r(mx)},${r(to.y)} ${r(to.x)},${r(to.y)}`);
-				this.preview.style.display = "";
+				this.preview.classList.remove(HIDDEN);
 				const over = this.hitTest(document.elementFromPoint(e.clientX, e.clientY));
 				this.applyHover(over.kind === "node" && over.id !== g.sourceId ? over : null);
 				return;
@@ -830,7 +825,7 @@ export class SankeyRenderer {
 			return;
 		}
 		if (g.type === "connect") {
-			this.preview.style.display = "none";
+			this.preview.classList.add(HIDDEN);
 			this.applyHover(null);
 			this.suppressClick = true;
 			if (cancelled) return;
@@ -947,7 +942,7 @@ export class SankeyRenderer {
 				break;
 			case "Escape":
 				if (this.gesture.type === "connect") {
-					this.preview.style.display = "none";
+					this.preview.classList.add(HIDDEN);
 					this.gesture = { type: "none" };
 				} else if (this.selection) {
 					this.setSelection(null);
@@ -1107,7 +1102,7 @@ export class SankeyRenderer {
 		let y = p.y + 14;
 		if (x + tw > w - 4) x = Math.max(4, p.x - tw - 14);
 		if (y + th > h - 4) y = Math.max(4, p.y - th - 14);
-		tip.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+		tip.setCssProps({ "--sankey-flow-tip-x": `${Math.round(x)}px`, "--sankey-flow-tip-y": `${Math.round(y)}px` });
 	}
 
 	private hideTooltip(): void {
@@ -1122,7 +1117,7 @@ export class SankeyRenderer {
 		if (!node || !ln) return;
 		const header = div("sankey-flow-tooltip-title", tip);
 		const swatch = div("sankey-flow-swatch", header);
-		swatch.style.setProperty("background", this.nodeColors.get(id) ?? "");
+		swatch.setCssProps({ "--sankey-flow-swatch": this.nodeColors.get(id) ?? "" });
 		header.append(document.createTextNode(node.label));
 		if (node.group) div("sankey-flow-tooltip-chip", header).textContent = node.group;
 

@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, PluginSettingTab, Setting, type TextComponent } from "obsidian";
 import type SankeyFlowPlugin from "../main";
 import { SCHEMA_VERSION } from "../model/schema";
 import { isSafeColor, parsePalette } from "../model/colorValue";
@@ -34,8 +34,8 @@ export class SankeySettingsTab extends PluginSettingTab {
 					.onChange((v) => this.set("diagramFolder", v.trim().replace(/^\/+|\/+$/g, "") || DEFAULT_SETTINGS.diagramFolder)),
 			);
 		new Setting(containerEl)
-			.setName("Open diagrams in the Sankey editor")
-			.setDesc("Opening a diagram note shows the visual editor. Use “Open as Markdown” in the editor to see the note itself.")
+			.setName("Open diagram notes in the visual editor")
+			.setDesc("Opening a diagram note shows the visual editor. Use the page icon in the editor header to see the note as Markdown.")
 			.addToggle((t) => t.setValue(s.openDiagramsInEditor).onChange((v) => this.set("openDiagramsInEditor", v)));
 		new Setting(containerEl)
 			.setName("Autosave")
@@ -72,7 +72,7 @@ export class SankeySettingsTab extends PluginSettingTab {
 			);
 		new Setting(containerEl)
 			.setName("Insert diagrams as")
-			.setDesc("Used by “Insert diagram into current note”.")
+			.setDesc("Used by the command that inserts a diagram into the current note.")
 			.addDropdown((d) =>
 				d
 					.addOptions({ embed: "Embed link  ![[Diagram]]", codeblock: "Code block  ```sankey diagram: …```" })
@@ -207,7 +207,7 @@ export class SankeySettingsTab extends PluginSettingTab {
 			.addToggle((t) => t.setValue(s.highlightOnHover).onChange((v) => this.set("highlightOnHover", v)));
 		new Setting(containerEl)
 			.setName("Clicking a linked node in a note")
-			.setDesc("In the editor, Ctrl/Cmd-click always opens the link.")
+			.setDesc("In the editor, clicking with the modifier key you use for new tabs always opens the link.")
 			.addDropdown((d) =>
 				d
 					.addOptions({ "open-link": "Opens the link", select: "Only highlights it (Ctrl/Cmd-click opens)" })
@@ -276,7 +276,7 @@ export class SankeySettingsTab extends PluginSettingTab {
 			});
 		new Setting(containerEl)
 			.setName("Layout smoothing for new diagrams")
-			.setDesc("Relaxation passes used by the automatic layout. Each diagram can change this in its Diagram tab.")
+			.setDesc("Relaxation passes used by the automatic layout. Each diagram can change this in the editor sidebar.")
 			.addSlider((sl) =>
 				sl
 					.setLimits(0, 16, 1)
@@ -305,33 +305,35 @@ export class SankeySettingsTab extends PluginSettingTab {
 
 	private colorText(el: HTMLElement, name: string, desc: string, key: "accentColor" | "defaultNodeColor" | "defaultFlowColor"): void {
 		const setting = new Setting(el).setName(name).setDesc(desc);
-		setting.addText((t) =>
-			t
-				.setPlaceholder("Automatic")
+		let text: TextComponent | null = null;
+		setting.addText((t) => {
+			text = t;
+			t.setPlaceholder("Automatic")
 				.setValue(this.plugin.settings[key])
 				.onChange((v) => {
 					const value = v.trim();
 					const valid = !value || isSafeColor(value);
 					t.inputEl.toggleClass("is-invalid", !valid);
 					if (valid) void this.set(key, value);
-				}),
-		);
+				});
+		});
 		setting.addColorPicker((c) => {
 			const current = this.plugin.settings[key];
 			if (/^#[0-9a-f]{6}$/i.test(current)) c.setValue(current);
 			c.onChange((v) => {
+				// Mirror the picked colour into the text field instead of re-rendering the whole tab.
+				text?.setValue(v);
 				void this.set(key, v);
-				this.display();
 			});
 		});
 	}
 
 	private palette(el: HTMLElement, name: string, key: "customPaletteLight" | "customPaletteDark"): void {
-		const setting = new Setting(el).setName(name).setDesc("Comma-separated colours used by the Custom palette mode.");
+		const setting = new Setting(el).setName(name).setDesc("Comma-separated colours used by the custom palette mode.");
 		const preview = setting.descEl.createDiv("sankey-flow-color-row");
 		const draw = () => {
 			preview.empty();
-			for (const c of parsePalette(this.plugin.settings[key])) preview.createDiv("sankey-flow-color-chip").style.background = c;
+			for (const c of parsePalette(this.plugin.settings[key])) preview.createDiv("sankey-flow-color-chip").setCssProps({ "--sankey-flow-swatch": c });
 		};
 		draw();
 		setting.addTextArea((t) =>

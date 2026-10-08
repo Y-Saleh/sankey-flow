@@ -59,7 +59,8 @@ export class DiagramStore {
 	async duplicate(file: TFile): Promise<TFile> {
 		const folder = file.parent?.path ?? "/";
 		const path = this.availablePath(folder, `${file.basename} copy`, file.extension);
-		return this.app.vault.copy(file, path);
+		// Read + create rather than Vault.copy, which needs Obsidian 1.8.7.
+		return this.app.vault.create(path, await this.app.vault.read(file));
 	}
 
 	availablePath(folder: string, base: string, extension: string): string {

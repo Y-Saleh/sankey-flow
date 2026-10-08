@@ -74,8 +74,7 @@ export class FlowsPanel implements Panel {
 			this.headButtons.set(key, btn);
 		}
 		head.createDiv();
-		this.body = this.scroller.createDiv();
-		this.body.style.position = "relative";
+		this.body = this.scroller.createDiv("sankey-flow-table-body");
 		this.emptyEl = this.scroller.createDiv({ cls: "sankey-flow-table-empty", text: "No flows yet. Add one below, or import a CSV file." });
 		this.scroller.addEventListener("scroll", () => this.scheduleRows());
 
@@ -138,8 +137,8 @@ export class FlowsPanel implements Panel {
 		this.rows = rows;
 		const total = doc.flows.length;
 		this.countEl.setText(this.search ? `${rows.length} of ${total}` : `${total} flow${total === 1 ? "" : "s"}`);
-		this.body.style.height = `${rows.length * ROW_HEIGHT}px`;
-		this.emptyEl.style.display = rows.length ? "none" : "";
+		this.body.setCssProps({ "--sankey-flow-table-height": `${rows.length * ROW_HEIGHT}px` });
+		this.emptyEl.toggle(!rows.length);
 		this.emptyEl.setText(total ? "No flows match your search." : "No flows yet. Add one below, or import a CSV file.");
 		this.updateDatalist();
 		this.renderRows();
@@ -155,7 +154,7 @@ export class FlowsPanel implements Panel {
 
 	private scheduleRows(): void {
 		if (this.frame !== null) return;
-		this.frame = requestAnimationFrame(() => {
+		this.frame = window.requestAnimationFrame(() => {
 			this.frame = null;
 			this.renderRows();
 		});
@@ -180,7 +179,7 @@ export class FlowsPanel implements Panel {
 			if (!row.el.isConnected) this.body.appendChild(row.el);
 			const sameRow = row.flowId === flow.id;
 			row.flowId = flow.id;
-			row.el.style.top = `${(start + i) * ROW_HEIGHT}px`;
+			row.el.setCssProps({ "--sankey-flow-row-top": `${(start + i) * ROW_HEIGHT}px` });
 			row.el.setAttr("aria-rowindex", String(start + i + 2));
 			row.el.toggleClass("is-selected", sel?.kind === "flow" && sel.id === flow.id);
 			const invalid = !(Number.isFinite(flow.value) && flow.value > 0) || flow.source === flow.target;
@@ -298,8 +297,7 @@ export class FlowsPanel implements Panel {
 
 	/** The always-visible "new flow" row at the bottom of the table. */
 	private buildAddRow(listId: string): void {
-		const wrap = this.el.createDiv("sankey-flow-table-row");
-		wrap.style.position = "static";
+		const wrap = this.el.createDiv("sankey-flow-table-row sankey-flow-add-row");
 		wrap.setAttr("aria-label", "Add a flow");
 		const source = wrap.createEl("input", { type: "text", attr: { list: listId, placeholder: "Source", "aria-label": "New flow source" } });
 		const target = wrap.createEl("input", { type: "text", attr: { list: listId, placeholder: "Target", "aria-label": "New flow target" } });
@@ -351,6 +349,6 @@ export class FlowsPanel implements Panel {
 	}
 
 	destroy(): void {
-		if (this.frame !== null) cancelAnimationFrame(this.frame);
+		if (this.frame !== null) window.cancelAnimationFrame(this.frame);
 	}
 }
