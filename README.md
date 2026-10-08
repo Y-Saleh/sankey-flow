@@ -84,7 +84,7 @@ There are three ways to show a diagram in a note:
 **2. Reference it from a code block**, which lets you override options per embed:
 
 ````markdown
-```sankey
+```sankey-flow
 diagram: [[Energy flow]]
 height: 420
 title: false
@@ -94,7 +94,7 @@ title: false
 **3. Write flows inline** for quick, one-off diagrams:
 
 ````markdown
-```sankey
+```sankey-flow
 height: 300
 suffix: TWh
 Coal -> Electricity: 50
@@ -121,7 +121,7 @@ Code block options:
 | `colors` | `accent` | `categorical`, `accent`, `sequential` or `custom`. |
 | `query`, `source`, `target`, `value`, `label` | | Dataview integration, see below. |
 
-The language `sankey-flow` is an alias of `sankey`, for vaults where another plugin already uses `sankey`.
+`sankey` works as a shorter alias for `sankey-flow`, unless another plugin in your vault already renders `sankey` blocks (the Sankey plugin does). The plugin always writes `sankey-flow`, so diagrams keep working next to other Sankey plugins.
 
 Embedded diagrams render in reading view, Live Preview, transclusions, hover previews and Canvas file cards. Click a linked node to open its note (Ctrl/Cmd-click for a new tab), hover for details, right-click for export options, and use the pencil icon to open the editor.
 
@@ -159,10 +159,10 @@ Links behave like normal Obsidian links:
 
 Rows with the same source and target can be combined (summed). Use **Import CSV…** in the editor to add flows to an existing diagram or replace its data.
 
-**From Dataview (experimental, optional).** If the Dataview plugin is installed, a `sankey` block can run a `TABLE` query:
+**From Dataview (experimental, optional).** If the Dataview plugin is installed, a `sankey-flow` block can run a `TABLE` query:
 
 ````markdown
-```sankey
+```sankey-flow
 query: TABLE from AS Source, to AS Target, amount AS Value FROM "Finance"
 source: Source
 target: Target
@@ -223,7 +223,7 @@ tags:
   - energy
 ---
 
-```sankey
+```sankey-flow
 {
   "type": "sankey-flow",
   "version": 1,
@@ -253,6 +253,7 @@ What Sankey Flow writes:
 - Only the `sankey-flow` and `sankey-links` frontmatter keys and the data block are ever changed. Other properties, and any text around the block, are preserved byte for byte.
 - One node or flow per line, so Git diffs stay small and readable.
 - A longer code fence is used automatically if a label contains backticks.
+- Data blocks written as ```` ```sankey ```` (early development builds) are read normally and rewritten as ```` ```sankey-flow ```` the next time the diagram is saved.
 
 ### Schema (version 1)
 
@@ -294,7 +295,7 @@ What Sankey Flow writes:
 
 - **Diagram notes contain JSON.** In source mode you see the data block. Edit diagrams in the editor, or use **Open as Markdown** for direct edits.
 - **"Open as Markdown" is remembered per tab until Obsidian restarts.** After that, the tab opens in the editor again. Turn off *Open diagrams in the Sankey editor* to always see diagram notes as Markdown.
-- **Links in inline code blocks are not indexed.** Only links stored in diagram notes appear in backlinks and the graph; links written inside a `sankey` code block in another note do not. `diagram:` references in code blocks are also not backlinks — use `![[Diagram]]` if you want the embed indexed.
+- **Links in inline code blocks are not indexed.** Only links stored in diagram notes appear in backlinks and the graph; links written inside a `sankey-flow` code block in another note do not. `diagram:` references in code blocks are also not backlinks — use `![[Diagram]]` if you want the embed indexed.
 - **Rendering is SVG.** This is fast and crisp up to several thousand flows; there is no Canvas/WebGL renderer for very large data.
 - **Dataview** support is limited to `TABLE` queries and is marked experimental. It has not been tested against every Dataview version.
 - **Undo history** lives in memory per editor tab and is cleared when the tab is closed or the plugin reloads.
@@ -308,7 +309,7 @@ What Sankey Flow writes:
 | "This diagram could not be opened" | The JSON in the note is invalid. Use **Open as Markdown**, fix the reported position, and the editor reloads automatically. The file is never overwritten while invalid. |
 | "Newer diagram format" | The note was saved by a newer version of Sankey Flow. Update the plugin. |
 | "Diagram not found" in a code block | The `diagram:` reference does not resolve. Check the name, or let the plugin update references on rename (setting *Update links on rename*). |
-| A `sankey` code block shows as plain code | Another plugin already registered `sankey`. Use ```` ```sankey-flow ```` instead (with debug logging on, the console names the conflict). |
+| A `sankey` code block shows as plain code or is drawn by another plugin | Another plugin already registered `sankey`. Use ```` ```sankey-flow ```` instead (with debug logging on, the console names the conflict). |
 | "Autosave paused" | The file changed elsewhere while you had unsaved edits. Choose a version in the banner. |
 | Nothing happens on Ctrl/Cmd+scroll in a note | Check *Zoom in embedded diagrams* in settings. |
 | Something else is wrong | Turn on **Enable debug logging**, reproduce, and check the developer console (Ctrl+Shift+I / Cmd+Option+I). |
@@ -320,6 +321,7 @@ npm install
 npm run dev        # rebuild on change
 npm run build      # type-check and production build → main.js
 npm test           # unit tests (vitest)
+npm run lint       # Obsidian's official plugin rules (eslint-plugin-obsidianmd)
 npm run typecheck
 ```
 

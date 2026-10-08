@@ -241,5 +241,5 @@ function applyOptions(raw: Map<string, string>, options: BlockOptions, issues: V
 export function referenceBlock(linktext: string, height?: number): string {
 	const lines = [`diagram: [[${linktext}]]`];
 	if (height) lines.push(`height: ${height}`);
-	return "```sankey\n" + lines.join("\n") + "\n```";
+	return "```sankey-flow\n" + lines.join("\n") + "\n```";
 }

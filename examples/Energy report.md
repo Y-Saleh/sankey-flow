@@ -15,7 +15,7 @@ Put the cursor in this table and run **Sankey Flow: Create diagram from current 
 
 ## Inline diagram
 
-```sankey
+```sankey-flow
 height: 260
 prefix: $
 Wages [1500] Budget
@@ -32,7 +32,7 @@ Budget -> Savings: 450
 
 ## Code block reference with options
 
-```sankey
+```sankey-flow
 diagram: [[Energy flow]]
 height: 300
 title: false

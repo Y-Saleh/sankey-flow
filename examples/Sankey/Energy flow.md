@@ -5,7 +5,7 @@ sankey-links:
   - "[[Grid#Overview]]"
 ---
 
-```sankey
+```sankey-flow
 {
   "type": "sankey-flow",
   "version": 1,

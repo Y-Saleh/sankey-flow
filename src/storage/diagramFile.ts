@@ -11,7 +11,7 @@ import { collectInternalLinks } from "../model/operations";
  *       - "[[Coal]]"
  *     ---
  *
- *     ```sankey
+ *     ```sankey-flow
  *     { ...diagram JSON... }
  *     ```
  *
@@ -19,8 +19,11 @@ import { collectInternalLinks } from "../model/operations";
  * - `sankey-links` mirrors every note linked from nodes/flows so Obsidian's
  *   own index picks them up: backlinks, graph view, outgoing links and
  *   rename-updates all work without any custom indexing.
- * - The JSON block is rendered by the `sankey` code block processor, so the
- *   note embeds anywhere Markdown renders (`![[...]]`, Canvas, hover preview).
+ * - The JSON block is rendered by the `sankey-flow` code block processor, so
+ *   the note embeds anywhere Markdown renders (`![[...]]`, Canvas, hover
+ *   preview). Blocks written as `sankey` (the format before 1.0.0's release)
+ *   are still read and are rewritten as `sankey-flow` on the next save.
+ *   `sankey-flow` avoids clashing with other plugins that render `sankey`.
  *
  * Only the two keys above and the data block are ever rewritten. Other
  * frontmatter and any text the user adds around the block are preserved.
@@ -29,7 +32,7 @@ import { collectInternalLinks } from "../model/operations";
 export const FRONTMATTER_KEY = "sankey-flow";
 export const FRONTMATTER_MARKER = "diagram";
 export const LINKS_KEY = "sankey-links";
-export const BLOCK_LANGUAGE = "sankey";
+export const BLOCK_LANGUAGE = "sankey-flow";
 
 export function isDiagramFrontmatter(frontmatter: unknown): boolean {
 	if (!frontmatter || typeof frontmatter !== "object") return false;
@@ -68,7 +71,7 @@ function splitLines(text: string): Line[] {
 export function locateDataBlock(text: string): BlockLocation | null {
 	const lines = splitLines(text);
 	for (let i = 0; i < lines.length; i++) {
-		const open = /^ {0,3}(`{3,}|~{3,})\s*sankey\s*$/.exec(lines[i].text);
+		const open = /^ {0,3}(`{3,}|~{3,})\s*sankey(?:-flow)?\s*$/.exec(lines[i].text);
 		if (!open) continue;
 		const fence = open[1];
 		const closeRe = new RegExp(`^ {0,3}${fence[0] === "`" ? "`" : "~"}{${fence.length},}\\s*$`);
@@ -228,7 +231,7 @@ export function writeDiagramFile(doc: SankeyDocument, existing?: string): string
 }
 
 /** Matches a whole `sankey` code block; group 3 is its body. */
-const SANKEY_BLOCK = /^( {0,3})(`{3,}|~{3,})[ \t]*sankey[ \t]*\r?\n([\s\S]*?)\r?\n {0,3}\2[ \t]*$/gm;
+const SANKEY_BLOCK = /^( {0,3})(`{3,}|~{3,})[ \t]*sankey(?:-flow)?[ \t]*\r?\n([\s\S]*?)\r?\n {0,3}\2[ \t]*$/gm;
 
 /** Applies `fn` to the body of every `sankey` code block, leaving the rest of the note untouched. */
 export function replaceInSankeyBlocks(text: string, fn: (body: string) => string): string {

@@ -42,7 +42,7 @@ describe("diagram files", () => {
 		expect(text.startsWith("---\nsankey-flow: diagram\nsankey-links:\n")).toBe(true);
 		expect(text).toContain('  - "[[Coal]]"');
 		expect(text).toContain('  - "[[Grid#Overview]]"');
-		expect(text).toContain("```sankey\n{");
+		expect(text).toContain("```sankey-flow\n{");
 		const { doc: back, issues } = readDiagramFile(text);
 		expect(issues).toEqual([]);
 		expect(back).toEqual(doc);
@@ -93,8 +93,21 @@ describe("diagram files", () => {
 		const doc = createEmptyDocument("Fence");
 		addNode(doc, { label: "Code ``` block" });
 		const text = writeDiagramFile(doc);
-		expect(text).toContain("````sankey");
+		expect(text).toContain("````sankey-flow");
 		expect(readDiagramFile(text).doc.nodes[0].label).toBe("Code ``` block");
+	});
+
+	it("reads diagram notes written with a plain sankey block and upgrades them on save", () => {
+		const doc = sampleDoc();
+		const old = writeDiagramFile(doc).replace("```sankey-flow\n", "```sankey\n");
+		expect(old).toContain("```sankey\n{");
+		const { doc: back, issues } = readDiagramFile(old);
+		expect(issues).toEqual([]);
+		expect(back).toEqual(doc);
+		const saved = writeDiagramFile(back, old);
+		expect(saved).toContain("```sankey-flow\n{");
+		expect(saved).not.toContain("```sankey\n");
+		expect(readDiagramFile(saved).doc).toEqual(doc);
 	});
 
 	it("treats a note with no data block as an empty diagram", () => {

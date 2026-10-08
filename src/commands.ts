@@ -128,7 +128,7 @@ function referencedDiagramAtCursor(plugin: SankeyFlowPlugin, editor: Editor, sou
 	let start = -1;
 	for (let i = cursor; i >= 0; i--) {
 		const line = editor.getLine(i);
-		if (/^\s*(`{3,}|~{3,})\s*sankey\s*$/.test(line)) {
+		if (/^\s*(`{3,}|~{3,})\s*sankey(?:-flow)?\s*$/.test(line)) {
 			start = i;
 			break;
 		}
